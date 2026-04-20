@@ -47,7 +47,7 @@ class TestFeatureStoreOperations:
             store.write(
                 "users",
                 data_frame=data,
-                with_indicies={
+                with_indices={
                     "unique_user_id_index": {"columns": ["user_id"], "unique": True}
                 },
             )
@@ -57,14 +57,14 @@ class TestFeatureStoreOperations:
             )
             assert data_written.equals(data)
             with store._engine.connect() as conn:
-                indicies = store._engine.dialect.get_indexes(
+                indices = store._engine.dialect.get_indexes(
                     conn, "users", schema=postgres_config.write_schema
                 )
                 conn.close()
-            assert len(indicies) == 1
-            assert indicies[0]["name"] == "unique_user_id_index"
-            assert indicies[0]["unique"] is True
-            assert indicies[0]["column_names"] == ["user_id"]
+            assert len(indices) == 1
+            assert indices[0]["name"] == "unique_user_id_index"
+            assert indices[0]["unique"] is True
+            assert indices[0]["column_names"] == ["user_id"]
 
     @staticmethod
     def test_appending_data(patched_store, postgres_config):
@@ -117,7 +117,7 @@ class TestFeatureStoreOperations:
                 "users",
                 data_frame=data1,
                 write_option="append",
-                with_indicies={
+                with_indices={
                     "unique_user_id_index": {"columns": ["user_id"], "unique": True}
                 },
             )
@@ -162,7 +162,7 @@ class TestFeatureStoreOperations:
                 "users",
                 data_frame=data1,
                 write_option="append",
-                with_indicies={
+                with_indices={
                     "unique_user_id_index": {"columns": ["user_id"], "unique": True}
                 },
             )
@@ -309,7 +309,7 @@ class TestFeatureStoreOperations:
                 "users",
                 data_frame=data1,
                 write_option="replace",
-                with_indicies={
+                with_indices={
                     "unique_user_id_index": {"columns": ["user_id"], "unique": True}
                 },
             )

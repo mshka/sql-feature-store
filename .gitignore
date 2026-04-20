@@ -85,3 +85,6 @@ dmypy.json
 
 # macOS
 .DS_Store
+
+# Local scratch space (session prompts, notes, etc.)
+tmp/
