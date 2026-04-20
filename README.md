@@ -1,5 +1,9 @@
 # sql-feature-store
 
+[![CI](https://github.com/mshka/sql-feature-store/actions/workflows/ci.yml/badge.svg)](https://github.com/mshka/sql-feature-store/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](pyproject.toml)
+
 Lightweight online feature store backed by a SQL database, with a pandas API.
 Currently implemented for PostgreSQL; designed so other SQL backends (e.g.
 MySQL) can be added later.
@@ -12,6 +16,14 @@ MySQL) can be added later.
 - Supports write modes: `fail`, `replace`, `append`
 - Supports index creation and `ON CONFLICT DO UPDATE` upserts
 - Reads via SQL (optionally in chunks)
+
+## Install
+
+```bash
+pip install sql-feature-store
+```
+
+Requires Python `>=3.10,<3.13`.
 
 ## Quickstart
 
@@ -32,6 +44,11 @@ df = pd.DataFrame({"user_id": [1, 2, 3], "country": ["US", "UK", None]})
 store.write("users", data_frame=df, write_option="replace")
 
 result = store.read("select * from predictions.users")
+# >>> result
+#    user_id country
+# 0        1      US
+# 1        2      UK
+# 2        3    None
 ```
 
 Credentials are passed in directly — sourcing them (env vars, AWS Secrets
@@ -43,40 +60,11 @@ Full API usage — chunked reads, write modes, indexes, `ON CONFLICT DO UPDATE`
 upserts, automatic column migration, and pytest fixtures — lives in
 [`docs/usage.md`](docs/usage.md).
 
-## Requirements
+## Contributing
 
-- Python `>=3.10,<3.13`
-- PostgreSQL (required by `pytest-postgresql`, which spawns a real `postgres` process for the integration tests)
-- [Poetry](https://python-poetry.org/) for dependency management
-- [pre-commit](https://pre-commit.com/) for git hooks
-
-### macOS (Homebrew)
-
-```bash
-brew install python@3.12 postgresql@16 poetry pre-commit
-```
-
-### Linux (Debian / Ubuntu)
-
-```bash
-sudo apt update
-sudo apt install -y python3.12 python3.12-venv postgresql pipx
-pipx ensurepath
-pipx install poetry
-pipx install pre-commit
-```
-
-On Fedora / RHEL, substitute `apt` with `dnf` and the package names accordingly
-(`python3.12`, `postgresql-server`, `pipx`).
-
-### Install
-
-```bash
-poetry install          # runtime + dev deps
-pre-commit install      # set up the git hook (run once per clone)
-```
-
-Python-level dependencies are declared in `pyproject.toml` and locked in `poetry.lock`.
+Bug reports, feature requests, and pull requests are welcome. See
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for development setup and the PR workflow,
+and [`CHANGELOG.md`](CHANGELOG.md) for release notes.
 
 ## Layout
 
@@ -95,3 +83,7 @@ sql-feature-store/
     ├── postgres_db_utils.py
     └── feature_store_test.py
 ```
+
+## License
+
+Released under the [MIT License](LICENSE).
