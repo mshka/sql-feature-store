@@ -3,9 +3,10 @@ from typing import Callable, List
 
 import pandas as pd
 from pytest_postgresql import factories
+from sqlalchemy import Engine, schema
+
 from sql_feature_store.config import PostgresConfig
 from sql_feature_store.store import FeatureStore
-from sqlalchemy import Engine, schema
 
 
 class FakePostgresConnection:

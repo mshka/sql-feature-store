@@ -4,7 +4,6 @@ from typing import Dict, Iterator, List, Literal, Optional, Set, Union
 import numpy as np
 import pandas as pd
 from pandas.io import sql
-from sql_feature_store.config import PostgresConfig
 from sqlalchemy import (
     URL,
     ColumnClause,
@@ -20,6 +19,8 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.dialects.postgresql import insert
+
+from sql_feature_store.config import PostgresConfig
 
 DEFAULT_POOL_SIZE = 20
 DEFAULT_MAX_OVERFLOW = 10
@@ -186,10 +187,14 @@ class FeatureStore:
         else:
             _stmt = insert(table).on_conflict_do_nothing()
 
-        return conn.execute(
-            _stmt,
-            data_frame.to_dict(orient="records"),  # type: ignore
-        ).rowcount
+        # Replace NaN/NaT with None so the driver emits SQL NULL instead of
+        # coercing to the string "NaN" (which can happen for object/text columns).
+        _records = (
+            data_frame.astype(object)
+            .where(data_frame.notna(), None)
+            .to_dict(orient="records")
+        )
+        return conn.execute(_stmt, _records).rowcount  # type: ignore
 
     def _read_with_chunks(
         self, sql_query: str, chunksize: int
