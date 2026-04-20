@@ -44,6 +44,11 @@ df = pd.DataFrame({"user_id": [1, 2, 3], "country": ["US", "UK", None]})
 store.write("users", data_frame=df, write_option="replace")
 
 result = store.read("select * from predictions.users")
+# >>> result
+#    user_id country
+# 0        1      US
+# 1        2      UK
+# 2        3    None
 ```
 
 Credentials are passed in directly — sourcing them (env vars, AWS Secrets
