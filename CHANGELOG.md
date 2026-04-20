@@ -30,7 +30,8 @@ Initial public release.
 - Table-name validation against `^[a-z0-9_]+$`.
 - Documentation in [`docs/usage.md`](docs/usage.md).
 - Development tooling: `pre-commit` (black, flake8, isort, pygrep-hooks),
-  `pytest` + `pytest-postgresql` + `pytest-cov`, GitHub Actions CI.
+  `pytest` + `pytest-postgresql` + `pytest-cov`, GitHub Actions CI with
+  Codecov coverage reporting.
 
 [Unreleased]: https://github.com/mshka/sql-feature-store/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/mshka/sql-feature-store/releases/tag/v0.1.0
