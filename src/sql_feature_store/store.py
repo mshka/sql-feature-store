@@ -275,8 +275,8 @@ class FeatureStore:
         on_conflict_do_update: (Dict[str, Union[Dict, List]], optional):
             see https://github.com/sqlalchemy/sqlalchemy/blob/main/lib/sqlalchemy/dialects/postgresql/dml.py#L107-L149
             for details, params are passed through a dictionary example:
-            { "index_elements": ["worker_id"], "set_": {"shift_id": "Excluded.shift_id"}}
-            this would tell the sql to update the shift_id with new one if duplicate exist on worker_id
+            { "index_elements": ["user_id"], "set_": {"username": "Excluded.username"}}
+            this would tell the sql to update the username with new one if duplicate exist on user_id
 
         """
         self.validate_table_name(table_name=table_name)

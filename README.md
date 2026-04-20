@@ -13,7 +13,7 @@ MySQL) can be added later.
 - Supports index creation and `ON CONFLICT DO UPDATE` upserts
 - Reads via SQL (optionally in chunks)
 
-## Usage
+## Quickstart
 
 ```python
 import pandas as pd
@@ -28,14 +28,20 @@ config = PostgresConfig(
 )
 store = FeatureStore(config=config)
 
-df = pd.DataFrame({"worker_id": [1, 2, 3], "city": ["London", "Paris", None]})
-store.write("shifts", data_frame=df, write_option="replace")
+df = pd.DataFrame({"user_id": [1, 2, 3], "country": ["US", "UK", None]})
+store.write("users", data_frame=df, write_option="replace")
 
-result = store.read("select * from predictions.shifts")
+result = store.read("select * from predictions.users")
 ```
 
 Credentials are passed in directly — sourcing them (env vars, AWS Secrets
 Manager, Vault, etc.) is the caller's responsibility.
+
+## Documentation
+
+Full API usage — chunked reads, write modes, indexes, `ON CONFLICT DO UPDATE`
+upserts, automatic column migration, and pytest fixtures — lives in
+[`docs/usage.md`](docs/usage.md).
 
 ## Requirements
 
@@ -78,6 +84,8 @@ Python-level dependencies are declared in `pyproject.toml` and locked in `poetry
 sql-feature-store/
 ├── pyproject.toml
 ├── .pre-commit-config.yaml
+├── docs/
+│   └── usage.md
 ├── src/sql_feature_store/
 │   ├── __init__.py
 │   ├── config.py              # PostgresConfig dataclass

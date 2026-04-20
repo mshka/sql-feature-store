@@ -15,18 +15,18 @@ class TestFeatureStoreOperations:
             store = FeatureStore(config=postgres_config)
             data = pd.DataFrame(
                 {
-                    "worker_id": [1, 2, 3],
-                    "shift_id": ["12UK", "13UK", "14UK"],
-                    "city": ["London", "London", None],
+                    "user_id": [1, 2, 3],
+                    "username": ["alice", "bob", "carol"],
+                    "country": ["US", "US", None],
                 }
             )
 
             fake_postgres_connection.write_pandas_to_db(
-                schema=postgres_config.write_schema, table_name="shifts", df=data
+                schema=postgres_config.write_schema, table_name="users", df=data
             )
 
             data_written = store.read(
-                f"select * from {postgres_config.write_schema}.shifts"
+                f"select * from {postgres_config.write_schema}.users"
             )
 
             assert data.equals(data_written)
@@ -37,33 +37,33 @@ class TestFeatureStoreOperations:
             store = FeatureStore(config=postgres_config)
             data = pd.DataFrame(
                 {
-                    "worker_id": [1, 2, 3],
-                    "shift_id": ["12UK", "13UK", "14UK"],
-                    "city": ["London", "London", None],
+                    "user_id": [1, 2, 3],
+                    "username": ["alice", "bob", "carol"],
+                    "country": ["US", "US", None],
                 }
             )
 
             store.write(
-                "shifts",
+                "users",
                 data_frame=data,
                 with_indicies={
-                    "unique_worker_id_index": {"columns": ["worker_id"], "unique": True}
+                    "unique_user_id_index": {"columns": ["user_id"], "unique": True}
                 },
             )
 
             data_written = store.read(
-                f"select * from {postgres_config.write_schema}.shifts"
+                f"select * from {postgres_config.write_schema}.users"
             )
             assert data_written.equals(data)
             with store._engine.connect() as conn:
                 indicies = store._engine.dialect.get_indexes(
-                    conn, "shifts", schema=postgres_config.write_schema
+                    conn, "users", schema=postgres_config.write_schema
                 )
                 conn.close()
             assert len(indicies) == 1
-            assert indicies[0]["name"] == "unique_worker_id_index"
+            assert indicies[0]["name"] == "unique_user_id_index"
             assert indicies[0]["unique"] is True
-            assert indicies[0]["column_names"] == ["worker_id"]
+            assert indicies[0]["column_names"] == ["user_id"]
 
     @staticmethod
     def test_appending_data(patched_store, postgres_config):
@@ -71,24 +71,24 @@ class TestFeatureStoreOperations:
             store = FeatureStore(config=postgres_config)
             data_to_write = pd.DataFrame(
                 {
-                    "worker_id": [1, 2, 3],
-                    "shift_id": ["12UK", "13UK", "14UK"],
-                    "city": ["London", "London", None],
+                    "user_id": [1, 2, 3],
+                    "username": ["alice", "bob", "carol"],
+                    "country": ["US", "US", None],
                 }
             )
             expected = pd.DataFrame(
                 {
-                    "worker_id": [1, 2, 3, 1, 2, 3],
-                    "shift_id": ["12UK", "13UK", "14UK", "12UK", "13UK", "14UK"],
-                    "city": ["London", "London", None, "London", "London", None],
+                    "user_id": [1, 2, 3, 1, 2, 3],
+                    "username": ["alice", "bob", "carol", "alice", "bob", "carol"],
+                    "country": ["US", "US", None, "US", "US", None],
                 }
             )
 
-            store.write("shifts", data_frame=data_to_write, write_option="append")
-            store.write("shifts", data_frame=data_to_write, write_option="append")
+            store.write("users", data_frame=data_to_write, write_option="append")
+            store.write("users", data_frame=data_to_write, write_option="append")
 
             data_written = store.read(
-                f"select * from {postgres_config.write_schema}.shifts"
+                f"select * from {postgres_config.write_schema}.users"
             )
             assert data_written.equals(expected)
 
@@ -98,32 +98,32 @@ class TestFeatureStoreOperations:
             store = FeatureStore(config=postgres_config)
             data1 = pd.DataFrame(
                 {
-                    "worker_id": [1, 2, 3],
-                    "shift_id": ["12UK", "13UK", "14UK"],
-                    "city": ["London", "London", None],
+                    "user_id": [1, 2, 3],
+                    "username": ["alice", "bob", "carol"],
+                    "country": ["US", "US", None],
                 }
             )
 
             data2 = pd.DataFrame(
                 {
-                    "worker_id": [1, 2, 3],
-                    "shift_id": ["15UK", "16UK", "17UK"],
-                    "city": ["Liverpool", "London", None],
+                    "user_id": [1, 2, 3],
+                    "username": ["dave", "eve", "frank"],
+                    "country": ["DE", "US", None],
                 }
             )
 
             store.write(
-                "shifts",
+                "users",
                 data_frame=data1,
                 write_option="append",
                 with_indicies={
-                    "unique_worker_id_index": {"columns": ["worker_id"], "unique": True}
+                    "unique_user_id_index": {"columns": ["user_id"], "unique": True}
                 },
             )
-            store.write("shifts", data_frame=data2, write_option="append")
+            store.write("users", data_frame=data2, write_option="append")
 
             data_written = store.read(
-                f"select * from {postgres_config.write_schema}.shifts"
+                f"select * from {postgres_config.write_schema}.users"
             )
             assert data_written.equals(data1)
 
@@ -135,48 +135,51 @@ class TestFeatureStoreOperations:
             store = FeatureStore(config=postgres_config)
             data1 = pd.DataFrame(
                 {
-                    "worker_id": [1, 2, 3],
-                    "shift_id": ["12UK", "13UK", "14UK"],
-                    "city": ["London", "London", None],
+                    "user_id": [1, 2, 3],
+                    "username": ["alice", "bob", "carol"],
+                    "country": ["US", "US", None],
                 }
             )
 
             data2 = pd.DataFrame(
                 {
-                    "worker_id": [1, 2],
-                    "shift_id": ["15UK", "16UK"],
-                    "city": ["Liverpool", "London"],
+                    "user_id": [1, 2],
+                    "username": ["dave", "eve"],
+                    "country": ["DE", "US"],
                 }
             )
 
             expected = pd.DataFrame(
                 {
-                    "worker_id": [3, 1, 2],
-                    "shift_id": ["14UK", "15UK", "16UK"],
-                    "city": [None, "Liverpool", "London"],
+                    "user_id": [3, 1, 2],
+                    "username": ["carol", "dave", "eve"],
+                    "country": [None, "DE", "US"],
                 }
             )
 
             store.write(
-                "shifts",
+                "users",
                 data_frame=data1,
                 write_option="append",
                 with_indicies={
-                    "unique_worker_id_index": {"columns": ["worker_id"], "unique": True}
+                    "unique_user_id_index": {"columns": ["user_id"], "unique": True}
                 },
             )
             store.write(
-                "shifts",
+                "users",
                 data_frame=data2,
                 write_option="append",
                 on_conflict_do_update={
-                    "index_elements": ["worker_id"],
-                    "set_": {"shift_id": "EXCLUDED.shift_id", "city": "Excluded.city"},
+                    "index_elements": ["user_id"],
+                    "set_": {
+                        "username": "EXCLUDED.username",
+                        "country": "Excluded.country",
+                    },
                 },
             )
 
             data_written = store.read(
-                f"select * from {postgres_config.write_schema}.shifts"
+                f"select * from {postgres_config.write_schema}.users"
             )
             assert data_written.equals(expected)
 
@@ -188,16 +191,16 @@ class TestFeatureStoreOperations:
             store = FeatureStore(config=postgres_config)
             data = pd.DataFrame(
                 {
-                    "worker_id": [1, 2, 3],
-                    "shift_id": ["12UK", "13UK", "14UK"],
-                    "city": ["London", "London", None],
+                    "user_id": [1, 2, 3],
+                    "username": ["alice", "bob", "carol"],
+                    "country": ["US", "US", None],
                 }
             )
 
-            store.write("shifts", data_frame=data, write_option="replace")
+            store.write("users", data_frame=data, write_option="replace")
 
             data_written = store.read(
-                f"select * from {postgres_config.write_schema}.shifts"
+                f"select * from {postgres_config.write_schema}.users"
             )
             assert data_written.equals(data)
 
@@ -207,25 +210,25 @@ class TestFeatureStoreOperations:
             store = FeatureStore(config=postgres_config)
             data1 = pd.DataFrame(
                 {
-                    "worker_id": [1, 2, 3],
-                    "shift_id": ["12UK", "13UK", "14UK"],
-                    "city": ["London", "London", None],
+                    "user_id": [1, 2, 3],
+                    "username": ["alice", "bob", "carol"],
+                    "country": ["US", "US", None],
                 }
             )
 
             data2 = pd.DataFrame(
                 {
-                    "worker_id": [1, 2],
-                    "shift_id": ["15UK", "16UK"],
-                    "city": ["Liverpool", "London"],
+                    "user_id": [1, 2],
+                    "username": ["dave", "eve"],
+                    "country": ["DE", "US"],
                 }
             )
 
-            store.write("shifts", data_frame=data1, write_option="replace")
-            store.write("shifts", data_frame=data2, write_option="replace")
+            store.write("users", data_frame=data1, write_option="replace")
+            store.write("users", data_frame=data2, write_option="replace")
 
             data_written = store.read(
-                f"select * from {postgres_config.write_schema}.shifts"
+                f"select * from {postgres_config.write_schema}.users"
             )
             assert data_written.equals(data2)
 
@@ -237,35 +240,35 @@ class TestFeatureStoreOperations:
             store = FeatureStore(config=postgres_config)
             data1 = pd.DataFrame(
                 {
-                    "worker_id": [1, 2, 3],
-                    "shift_id": ["12UK", "13UK", "14UK"],
-                    "city": ["London", "London", None],
+                    "user_id": [1, 2, 3],
+                    "username": ["alice", "bob", "carol"],
+                    "country": ["US", "US", None],
                 }
             )
 
             data2 = pd.DataFrame(
                 {
-                    "worker_id": [1, 2],
-                    "shift_id": ["15UK", "16UK"],
-                    "city": ["Liverpool", "London"],
-                    "tier": [1, 0],
+                    "user_id": [1, 2],
+                    "username": ["dave", "eve"],
+                    "country": ["DE", "US"],
+                    "score": [1, 0],
                 }
             )
 
             expected = pd.DataFrame(
                 {
-                    "worker_id": [1, 2, 3, 1, 2],
-                    "shift_id": ["12UK", "13UK", "14UK", "15UK", "16UK"],
-                    "city": ["London", "London", None, "Liverpool", "London"],
-                    "tier": [None, None, None, 1, 0],
+                    "user_id": [1, 2, 3, 1, 2],
+                    "username": ["alice", "bob", "carol", "dave", "eve"],
+                    "country": ["US", "US", None, "DE", "US"],
+                    "score": [None, None, None, 1, 0],
                 }
             )
 
-            store.write("shifts", data_frame=data1, write_option="replace")
-            store.write("shifts", data_frame=data2, write_option="append")
+            store.write("users", data_frame=data1, write_option="replace")
+            store.write("users", data_frame=data2, write_option="append")
 
             data_written = store.read(
-                f"select * from {postgres_config.write_schema}.shifts"
+                f"select * from {postgres_config.write_schema}.users"
             )
             assert data_written.equals(expected)
 
@@ -277,53 +280,53 @@ class TestFeatureStoreOperations:
             store = FeatureStore(config=postgres_config)
             data1 = pd.DataFrame(
                 {
-                    "worker_id": [1, 2, 3],
-                    "shift_id": ["12UK", "13UK", "14UK"],
-                    "city": ["London", "London", None],
+                    "user_id": [1, 2, 3],
+                    "username": ["alice", "bob", "carol"],
+                    "country": ["US", "US", None],
                 }
             )
 
             data2 = pd.DataFrame(
                 {
-                    "worker_id": [1, 2],
-                    "shift_id": ["15UK", "16UK"],
-                    "city": ["Liverpool", "London"],
-                    "TIER": [1, 0],
+                    "user_id": [1, 2],
+                    "username": ["dave", "eve"],
+                    "country": ["DE", "US"],
+                    "SCORE": [1, 0],
                 }
             )
 
             expected = pd.DataFrame(
                 {
-                    "worker_id": [3, 1, 2],
-                    "shift_id": ["14UK", "15UK", "16UK"],
-                    "city": [None, "Liverpool", "London"],
-                    "TIER": [None, 1, 0],
+                    "user_id": [3, 1, 2],
+                    "username": ["carol", "dave", "eve"],
+                    "country": [None, "DE", "US"],
+                    "SCORE": [None, 1, 0],
                 }
             )
 
             store.write(
-                "shifts",
+                "users",
                 data_frame=data1,
                 write_option="replace",
                 with_indicies={
-                    "unique_worker_id_index": {"columns": ["worker_id"], "unique": True}
+                    "unique_user_id_index": {"columns": ["user_id"], "unique": True}
                 },
             )
             store.write(
-                "shifts",
+                "users",
                 data_frame=data2,
                 write_option="append",
                 on_conflict_do_update={
-                    "index_elements": ["worker_id"],
+                    "index_elements": ["user_id"],
                     "set_": {
-                        "shift_id": "EXCLUDED.shift_id",
-                        "city": "Excluded.city",
-                        "TIER": 'Excluded."TIER"',
+                        "username": "EXCLUDED.username",
+                        "country": "Excluded.country",
+                        "SCORE": 'Excluded."SCORE"',
                     },
                 },
             )
             data_written = store.read(
-                f"select * from {postgres_config.write_schema}.shifts"
+                f"select * from {postgres_config.write_schema}.users"
             )
             assert data_written.equals(expected)
 
@@ -333,15 +336,15 @@ class TestFeatureStoreOperations:
             store = FeatureStore(config=postgres_config)
             data = pd.DataFrame(
                 {
-                    "worker_id": [1] * 10,
-                    "shift_id": ["12UK"] * 10,
-                    "city": ["London"] * 10,
+                    "user_id": [1] * 10,
+                    "username": ["alice"] * 10,
+                    "country": ["US"] * 10,
                 }
             )
-            store.write("shifts", data_frame=data, write_option="replace")
+            store.write("users", data_frame=data, write_option="replace")
             batch = 0
             for chunk in store.read(
-                f"select * from {postgres_config.write_schema}.shifts", chunksize=2
+                f"select * from {postgres_config.write_schema}.users", chunksize=2
             ):
                 batch += 1
                 assert len(chunk) == 2
@@ -353,13 +356,13 @@ class TestFeatureStoreOperations:
             store = FeatureStore(config=postgres_config)
             data = pd.DataFrame(
                 {
-                    "worker_id": [1] * 10_001,
-                    "shift_id": ["12UK"] * 10_001,
-                    "city": ["London"] * 10_001,
+                    "user_id": [1] * 10_001,
+                    "username": ["alice"] * 10_001,
+                    "country": ["US"] * 10_001,
                 }
             )
-            store.write("shifts", data_frame=data, write_option="replace")
-            input = store.read(f"select * from {postgres_config.write_schema}.shifts")
+            store.write("users", data_frame=data, write_option="replace")
+            input = store.read(f"select * from {postgres_config.write_schema}.users")
 
             assert len(input) == 10_001
 
@@ -399,12 +402,12 @@ class TestFeatureStoreOperations:
                 with pytest.raises(ValueError, match=error_message):
                     store.write(
                         table_name,
-                        data_frame=pd.DataFrame({"worker_id": [1, 2, 3]}),
+                        data_frame=pd.DataFrame({"user_id": [1, 2, 3]}),
                     )
             else:
                 store.write(
                     table_name,
-                    data_frame=pd.DataFrame({"worker_id": [1, 2, 3]}),
+                    data_frame=pd.DataFrame({"user_id": [1, 2, 3]}),
                 )
 
     @staticmethod
