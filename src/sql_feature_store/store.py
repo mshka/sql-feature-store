@@ -186,10 +186,12 @@ class FeatureStore:
         else:
             _stmt = insert(table).on_conflict_do_nothing()
 
-        return conn.execute(
-            _stmt,
-            data_frame.to_dict(orient="records"),  # type: ignore
-        ).rowcount
+        # Replace NaN/NaT with None so the driver emits SQL NULL instead of
+        # coercing to the string "NaN" (which can happen for object/text columns).
+        _records = data_frame.astype(object).where(data_frame.notna(), None).to_dict(
+            orient="records"
+        )
+        return conn.execute(_stmt, _records).rowcount  # type: ignore
 
     def _read_with_chunks(
         self, sql_query: str, chunksize: int
