@@ -1,6 +1,7 @@
 import os
 
 import pytest
+
 from sql_feature_store.config import PostgresConfig
 
 os.environ["ENV"] = "TEST"

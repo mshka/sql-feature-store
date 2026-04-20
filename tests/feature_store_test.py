@@ -1,5 +1,6 @@
 import pandas as pd
 import pytest
+
 from sql_feature_store.store import (
     DEFAULT_MAX_OVERFLOW,
     DEFAULT_POOL_RECYCLE_SECONDS,
