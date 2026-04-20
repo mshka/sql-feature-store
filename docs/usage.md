@@ -100,7 +100,7 @@ store.write("users", data_frame=data, write_option="replace")
 | `write_option` | `"fail" \| "replace" \| "append"` | `"replace"` | Action if the table exists. See below. |
 | `dtype_mapping` | `Dict[str, np.dtype]` | `None` | Override column types on table creation, e.g. `{"user_id": BigInteger}`. |
 | `chunksize` | `int` | `1000` | Rows per batch when creating/replacing the table. |
-| `with_indicies` | `Dict` | `{}` | Indexes to create after write. See [Indexes](#indexes). |
+| `with_indices` | `Dict` | `{}` | Indexes to create after write. See [Indexes](#indexes). |
 | `on_conflict_do_update` | `Dict` | `{}` | Upsert clause for `append` mode. See [Upserts](#upserts-on-conflict-do-update). |
 
 #### `write_option`
@@ -116,14 +116,14 @@ creating it.
 
 ## Indexes
 
-Pass `with_indicies` to create one or more indexes after the write. The key is
+Pass `with_indices` to create one or more indexes after the write. The key is
 the index name; the value is a dict with `columns` and optional `unique`.
 
 ```python
 store.write(
     "users",
     data_frame=data,
-    with_indicies={
+    with_indices={
         "unique_user_id_index": {"columns": ["user_id"], "unique": True},
         "user_name_index": {"columns": ["user_id", "username"]},
     },
@@ -134,7 +134,7 @@ Notes:
 
 - Indexes are created with `checkfirst=True`, so re-running is safe.
 - If `write_option="replace"`, the table is dropped and you'll need to pass
-  `with_indicies` again to recreate them.
+  `with_indices` again to recreate them.
 
 ## Upserts (`ON CONFLICT DO UPDATE`)
 
@@ -147,7 +147,7 @@ store.write(
     "users",
     data_frame=data1,
     write_option="append",
-    with_indicies={
+    with_indices={
         "unique_user_id_index": {"columns": ["user_id"], "unique": True},
     },
 )

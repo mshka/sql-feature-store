@@ -85,7 +85,7 @@ class FeatureStore:
         return _query
 
     @staticmethod
-    def _dype_to_postgresql_type(
+    def _dtype_to_postgresql_type(
         conn: Connection, column_name: str, column_type: np.dtype
     ) -> str:
         # Reference: https://github.com/pandas-dev/pandas/blob/main/pandas/tests/io/test_sql.py#L1589-L1595  # noqa: E501
@@ -136,7 +136,7 @@ class FeatureStore:
         schema: Optional[str] = None,
     ) -> None:
         schema = schema or self._config.write_schema
-        _column_type = self._dype_to_postgresql_type(conn, column_name, column_type)
+        _column_type = self._dtype_to_postgresql_type(conn, column_name, column_type)
         _table_name = ".".join([schema, table_name])
         _stmt = text(
             f'ALTER TABLE {_table_name} ADD COLUMN "{column_name}" {_column_type}'
@@ -149,28 +149,28 @@ class FeatureStore:
         table_name: str,
         index_name: str,
         columns: List[ColumnClause],
-        unqiue: bool,
+        unique: bool,
     ) -> None:
         _index = Index(
             index_name,
             *columns,
-            unique=unqiue,
+            unique=unique,
             _table=Table(table_name, MetaData(), schema=self._config.write_schema),
         )
         _index.create(self._engine, checkfirst=True)
 
-    def _create_indicies_if_not_exists(
-        self, table_name: str, indicies: Optional[Dict] = {}
+    def _create_indices_if_not_exists(
+        self, table_name: str, indices: Optional[Dict] = {}
     ) -> None:
-        if not indicies:
+        if not indices:
             return
 
-        for _name, _options in indicies.items():
+        for _name, _options in indices.items():
             self._create_index_if_not_exists(
                 table_name=table_name,
                 index_name=_name,
                 columns=[column(_col_name) for _col_name in _options["columns"]],
-                unqiue=_options.get("unique", False),
+                unique=_options.get("unique", False),
             )
 
     def _upsert_records(
@@ -251,7 +251,7 @@ class FeatureStore:
         write_option: Literal["fail", "replace", "append"] = "replace",
         dtype_mapping: Optional[Dict[str, np.dtype]] = None,
         chunksize: int = 1000,
-        with_indicies: Optional[Dict[str, Dict[str, Union[List, bool]]]] = {},
+        with_indices: Optional[Dict[str, Dict[str, Union[List, bool]]]] = {},
         on_conflict_do_update: Optional[Dict[str, Union[Dict, List, str]]] = {},
     ) -> Optional[int]:
         """
@@ -271,11 +271,11 @@ class FeatureStore:
             Specifying the datatype for columns.
         chunksize (int, optional):
             Specify the number of rows in each batch to be written at a time, default is 1000
-        with_indicies: (Dict[str, Dict[str, List[str], bool]], optional):
+        with_indices: (Dict[str, Dict[str, List[str], bool]], optional):
             Pass info for indexes to be created.
             example: { "index_name": {"columns": [column1, column2], "unique": True}}
                 This will create an index named index_name for column1 and column2 that is unique
-                multiple indicies can be passed in one option {index1_name: {}, index2_name: {}}
+                multiple indices can be passed in one option {index1_name: {}, index2_name: {}}
                 if write method is replace you will need to create the index each time you write the data
         on_conflict_do_update: (Dict[str, Union[Dict, List]], optional):
             see https://github.com/sqlalchemy/sqlalchemy/blob/main/lib/sqlalchemy/dialects/postgresql/dml.py#L107-L149
@@ -310,8 +310,8 @@ class FeatureStore:
                 )
                 conn.commit()
 
-                self._create_indicies_if_not_exists(
-                    table_name=table_name, indicies=with_indicies
+                self._create_indices_if_not_exists(
+                    table_name=table_name, indices=with_indices
                 )
             elif write_option == "append":
                 # Check if table need migration
@@ -326,8 +326,8 @@ class FeatureStore:
                             conn, table_name, _new_column, data_frame[_new_column].dtype
                         )
                 # Make sure index exists in case of on_conflict_do_update
-                self._create_indicies_if_not_exists(
-                    table_name=table_name, indicies=with_indicies
+                self._create_indices_if_not_exists(
+                    table_name=table_name, indices=with_indices
                 )
                 _rowcount = self._upsert_records(
                     conn=conn,
