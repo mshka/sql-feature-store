@@ -1,0 +1,49 @@
+version: 2
+
+updates:
+  # Python runtime + dev dependencies (Poetry-managed via pyproject.toml).
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/London
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - python
+    commit-message:
+      prefix: "deps"
+      include: scope
+    groups:
+      python-dev:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+      python-runtime-patch:
+        dependency-type: production
+        update-types:
+          - patch
+
+  # GitHub Actions used by workflows under .github/workflows/.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/London
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: "ci"
+      include: scope
+    groups:
+      actions:
+        update-types:
+          - minor
+          - patch

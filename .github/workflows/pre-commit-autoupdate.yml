@@ -1,0 +1,44 @@
+name: pre-commit autoupdate
+
+on:
+  schedule:
+    # Weekly, Monday 06:00 UTC — matches the Dependabot cadence.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  autoupdate:
+    name: Bump pre-commit hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Run pre-commit autoupdate
+        run: pre-commit autoupdate
+
+      - name: Open PR if hooks changed
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: chore/pre-commit-autoupdate
+          commit-message: "ci: bump pre-commit hook versions"
+          title: "ci: bump pre-commit hook versions"
+          body: |
+            Weekly `pre-commit autoupdate` run.
+
+            Review the diff in `.pre-commit-config.yaml` before merging.
+          labels: |
+            dependencies
+            ci
+          delete-branch: true
