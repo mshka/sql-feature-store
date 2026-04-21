@@ -3,7 +3,7 @@
 [![CI](https://github.com/mshka/sql-feature-store/actions/workflows/ci.yml/badge.svg)](https://github.com/mshka/sql-feature-store/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/mshka/sql-feature-store/branch/main/graph/badge.svg)](https://codecov.io/gh/mshka/sql-feature-store)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](pyproject.toml)
+[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](pyproject.toml)
 
 Lightweight online feature store backed by a SQL database, with a pandas API.
 Currently implemented for PostgreSQL; designed so other SQL backends (e.g.
@@ -24,7 +24,7 @@ MySQL) can be added later.
 pip install sql-feature-store
 ```
 
-Requires Python `>=3.10,<3.13`.
+Requires Python `>=3.10,<3.14`.
 
 ## Quickstart
 

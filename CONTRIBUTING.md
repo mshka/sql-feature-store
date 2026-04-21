@@ -4,7 +4,7 @@ Thanks for your interest in contributing to `sql-feature-store`.
 
 ## Requirements
 
-- Python `>=3.10,<3.13`
+- Python `>=3.10,<3.14`
 - PostgreSQL (required by `pytest-postgresql`, which spawns a real `postgres`
   process for the integration tests)
 - [Poetry](https://python-poetry.org/) for dependency management
