@@ -19,6 +19,7 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.schema import CreateSchema
 
 from sql_feature_store.config import PostgresConfig
 
@@ -51,6 +52,7 @@ class FeatureStore:
         self._pool_recycle = pool_recycle
 
         self._engine: Engine = self._get_postgresql_engine()
+        self._schema_ensured: bool = False
 
     def _get_postgresql_engine(self) -> Engine:
         url = URL.create(
@@ -293,6 +295,12 @@ class FeatureStore:
         _table = table(table_name, *_cols, schema=self._config.write_schema)
 
         with self._engine.begin() as conn:
+            if self._config.create_schema_if_missing and not self._schema_ensured:
+                conn.execute(
+                    CreateSchema(self._config.write_schema, if_not_exists=True)
+                )
+                self._schema_ensured = True
+
             if (write_option in ["fail", "replace"]) or (
                 not self._table_exist(table_name, conn)
             ):
