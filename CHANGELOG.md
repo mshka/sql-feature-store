@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `PostgresConfig.create_schema_if_missing` (default `True`) — `FeatureStore`
+  now runs `CREATE SCHEMA IF NOT EXISTS` on its first `write()` call and
+  memoises the check for the lifetime of the instance. Set to `False` to
+  require that the schema exists up front (raises
+  `sqlalchemy.exc.ProgrammingError` otherwise).
+
 ## [0.1.0] - TBD
 
 Initial public release.

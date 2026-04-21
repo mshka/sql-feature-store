@@ -7,6 +7,7 @@ For installation, see the [README](../README.md).
 ## Contents
 
 - [Connecting](#connecting)
+- [Schema creation](#schema-creation)
 - [Connection pool](#connection-pool)
 - [Reading](#reading)
 - [Writing](#writing)
@@ -39,6 +40,31 @@ store = FeatureStore(config=config)
 
 All writes go to `config.write_schema`. Reads use whatever schema is referenced
 in the SQL you pass.
+
+## Schema creation
+
+By default, `write_schema` is created automatically on the first `write()` call
+(`CREATE SCHEMA IF NOT EXISTS`). The check is memoised on the `FeatureStore`
+instance, so subsequent writes skip it. This requires the connecting role to
+have `CREATE` privilege on the database.
+
+If the schema is managed externally (locked-down role, DBA-controlled
+migrations, etc.), disable auto-creation and surface a clear error when the
+schema is missing:
+
+```python
+config = PostgresConfig(
+    host="localhost",
+    port=5432,
+    user="postgres",
+    password="postgres",
+    dbname="postgres",
+    create_schema_if_missing=False,
+)
+```
+
+With the flag off, `write()` raises `sqlalchemy.exc.ProgrammingError` if
+`write_schema` doesn't exist.
 
 ## Connection pool
 
