@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/mshka/sql-feature-store/security/advisories/new
+    about: Please report vulnerabilities privately, not via public issues. See SECURITY.md.
