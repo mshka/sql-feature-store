@@ -16,3 +16,4 @@ class PostgresConfig:
     dbname: str
     port: int = 5432
     write_schema: str = "predictions"
+    create_schema_if_missing: bool = True
