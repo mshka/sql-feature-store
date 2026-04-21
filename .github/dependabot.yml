@@ -1,7 +1,9 @@
 version: 2
 
 updates:
-  # Python runtime + dev dependencies (Poetry-managed via pyproject.toml).
+  # Python dependencies (Poetry-managed via pyproject.toml).
+  # Split into two grouped PRs per week: one for runtime deps (higher-risk,
+  # reviewed more carefully) and one for dev deps (lint/test tooling).
   - package-ecosystem: pip
     directory: "/"
     schedule:
@@ -9,7 +11,7 @@ updates:
       day: monday
       time: "06:00"
       timezone: Europe/London
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
     labels:
       - dependencies
       - python
@@ -17,17 +19,17 @@ updates:
       prefix: "deps"
       include: scope
     groups:
+      python-runtime:
+        dependency-type: production
+        patterns:
+          - "*"
       python-dev:
         dependency-type: development
-        update-types:
-          - minor
-          - patch
-      python-runtime-patch:
-        dependency-type: production
-        update-types:
-          - patch
+        patterns:
+          - "*"
 
   # GitHub Actions used by workflows under .github/workflows/.
+  # Grouped into a single weekly PR.
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
@@ -35,7 +37,7 @@ updates:
       day: monday
       time: "06:00"
       timezone: Europe/London
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 1
     labels:
       - dependencies
       - ci
@@ -44,6 +46,5 @@ updates:
       include: scope
     groups:
       actions:
-        update-types:
-          - minor
-          - patch
+        patterns:
+          - "*"
