@@ -86,7 +86,7 @@ jobs:
       # entries still enforce --cov-fail-under locally above.
       - name: Upload coverage to Codecov
         if: always() && matrix.python-version == '3.12'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           files: coverage.xml
           fail_ci_if_error: false
