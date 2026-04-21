@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Iterator, List, Literal, Optional, Set, Union
+from typing import Any, Dict, Iterator, List, Literal, Optional, Set, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -50,11 +50,7 @@ class FeatureStore:
         self._max_overflow = max_overflow
         self._pool_recycle = pool_recycle
 
-        self._engine: Optional[Engine] = None
-        self._connect_to_db()
-
-    def _connect_to_db(self) -> None:
-        self._engine = self._get_postgresql_engine()
+        self._engine: Engine = self._get_postgresql_engine()
 
     def _get_postgresql_engine(self) -> Engine:
         url = URL.create(
@@ -160,7 +156,7 @@ class FeatureStore:
         _index.create(self._engine, checkfirst=True)
 
     def _create_indices_if_not_exists(
-        self, table_name: str, indices: Optional[Dict] = {}
+        self, table_name: str, indices: Optional[Dict] = None
     ) -> None:
         if not indices:
             return
@@ -181,20 +177,24 @@ class FeatureStore:
         on_conflict_do_update: Optional[Dict] = None,
     ) -> int:
         if on_conflict_do_update:
-            _stmt = insert(table).on_conflict_do_update(
-                **self._normalize_on_conflict_do_update(on_conflict_do_update)
-            )
+            _normalized = self._normalize_on_conflict_do_update(on_conflict_do_update)
+            assert _normalized is not None  # truthy input always yields a dict back
+            _stmt = insert(table).on_conflict_do_update(**_normalized)
         else:
             _stmt = insert(table).on_conflict_do_nothing()
 
         # Replace NaN/NaT with None so the driver emits SQL NULL instead of
         # coercing to the string "NaN" (which can happen for object/text columns).
+        # pandas-stubs rejects `other=None` on the `.where(...)` overload even
+        # though it's a supported runtime idiom, so cast to satisfy mypy.
         _records = (
             data_frame.astype(object)
-            .where(data_frame.notna(), None)
+            .where(data_frame.notna(), cast(Any, None))
             .to_dict(orient="records")
         )
-        return conn.execute(_stmt, _records).rowcount  # type: ignore
+        # `to_dict` returns `list[dict[Hashable, Any]]`, but every column name
+        # in a DataFrame backed by SQL is a string at runtime.
+        return conn.execute(_stmt, cast(List[Dict[str, Any]], _records)).rowcount
 
     def _read_with_chunks(
         self, sql_query: str, chunksize: int
@@ -207,7 +207,7 @@ class FeatureStore:
                 rows = cursor.fetchmany(chunksize)
                 if not rows:
                     break
-                yield pd.DataFrame(rows, columns=cursor.keys())
+                yield pd.DataFrame(rows, columns=list(cursor.keys()))
             cursor.close()
             conn.close()
 
@@ -218,7 +218,7 @@ class FeatureStore:
             return _output
 
     def read(
-        self, sql_query: str, chunksize: int = None
+        self, sql_query: str, chunksize: Optional[int] = None
     ) -> Union[Iterator[pd.DataFrame], pd.DataFrame]:
         """
         Read data and return as DataFrame.
@@ -235,7 +235,7 @@ class FeatureStore:
             return self._read(sql_query)
 
     @staticmethod
-    def validate_table_name(table_name):
+    def validate_table_name(table_name: str) -> None:
         if not re.match(r"^[a-z0-9_]+$", table_name):
             raise ValueError(
                 (
@@ -251,8 +251,8 @@ class FeatureStore:
         write_option: Literal["fail", "replace", "append"] = "replace",
         dtype_mapping: Optional[Dict[str, np.dtype]] = None,
         chunksize: int = 1000,
-        with_indices: Optional[Dict[str, Dict[str, Union[List, bool]]]] = {},
-        on_conflict_do_update: Optional[Dict[str, Union[Dict, List, str]]] = {},
+        with_indices: Optional[Dict[str, Dict[str, Union[List, bool]]]] = None,
+        on_conflict_do_update: Optional[Dict[str, Union[Dict, List, str]]] = None,
     ) -> Optional[int]:
         """
         Write data frame to the schema configured on `PostgresConfig.write_schema`. # noqa: E501
