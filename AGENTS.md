@@ -15,10 +15,15 @@ spawns a real server).
 
 ```bash
 poetry install --all-extras          # runtime + dev deps + [testing] extra
-poetry run pytest                    # full test suite
-poetry run pytest --cov=sql_feature_store --cov-fail-under=90
-poetry run pre-commit run --all-files   # black, flake8, isort, pygrep-hooks
-poetry run mypy src                  # type check (config in tox.ini)
+poetry run tox                       # full local gate: tests + coverage + lint + mypy
+
+# Or run the individual steps:
+poetry run pytest                                # full test suite, no coverage
+poetry run coverage run -m pytest                # tests with coverage (needed
+poetry run coverage report                       #   for correct attribution of
+                                                 #   our own pytest11 plugin)
+poetry run pre-commit run --all-files            # black, flake8, isort, pygrep-hooks
+poetry run mypy src                              # type check (config in tox.ini)
 ```
 
 The test suite lives under `tests/integration/` — every test currently hits a

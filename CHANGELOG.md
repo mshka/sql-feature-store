@@ -34,6 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `upsert_test.py`, `column_migration_test.py`,
   `table_name_validation_test.py`, `engine_pool_test.py`,
   `auto_create_schema_test.py`). No test behaviour changes.
+- Coverage runs now use `coverage run -m pytest` (instead of
+  `pytest --cov=...`) in both `tox` and CI, so coverage starts before
+  pytest loads its entry-point plugins — the shipped pytest11 plugin's
+  own package (`__init__.py`, `config.py`) is now correctly attributed.
+  Coverage config (`source`, `show_missing`, `fail_under = 90`) lives
+  in `tox.ini` and is read by both runners.
 
 ### Removed
 
@@ -45,6 +51,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `FakePostgresConnection.write_pandas_to_db` helper; the same
   write-then-read round trip is covered by `TestWriteModes.
   test_write_then_read_roundtrip`.
+- `pytest-cov` dev dependency. Nothing invokes the `--cov` pytest flag
+  anymore; `coverage` (which was already pulled in transitively) is now
+  declared directly in the dev group.
 
 ## [0.1.0] - TBD
 
