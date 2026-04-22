@@ -221,29 +221,77 @@ FeatureStore.validate_table_name("users-2024")  # ValueError
 
 ## Testing with pytest
 
-The project uses [`pytest-postgresql`](https://pypi.org/project/pytest-postgresql/),
-which spawns a real `postgres` process for the test session. Two fixtures are
-defined in `tests/conftest.py`:
+`sql-feature-store` ships its own pytest plugin, so downstream users can
+integration-test against a real PostgreSQL database without rewriting the
+fixtures themselves. Install the `testing` extra:
 
-- `postgres_config` — a `PostgresConfig` pointed at the test database.
-- `patched_store` — a callable that yields a connection into the test database.
+```bash
+pip install sql-feature-store[testing]
+```
+
+The extra pulls in [`pytest-postgresql`](https://pypi.org/project/pytest-postgresql/),
+and the plugin auto-registers three fixtures via pytest's `pytest11` entry
+point:
+
+| Fixture | Scope | Purpose |
+|---|---|---|
+| `sql_feature_store_postgres_proc` | session | Backing Postgres process. Spawned for you by default, or delegated to an external server (see below). |
+| `sql_feature_store_config` | function | `PostgresConfig` pointed at the test database, with a **fresh random `write_schema` per test** (dropped `CASCADE` on teardown). |
+| `sql_feature_store_fixture` | function | A ready `FeatureStore` built from the config above. Engine is disposed on teardown. |
+
+Schemas are namespaced `sfs_test_<random>` and dropped after each test, so
+runs stay isolated even if a test bails out part-way.
+
+### Example
 
 ```python
 import pandas as pd
-from sql_feature_store import FeatureStore
 
-def test_write_and_read(patched_store, postgres_config):
-    with patched_store() as conn:
-        store = FeatureStore(config=postgres_config)
+def test_write_and_read(sql_feature_store_fixture, sql_feature_store_config):
+    store = sql_feature_store_fixture
+    schema = sql_feature_store_config.write_schema
 
-        data = pd.DataFrame({"user_id": [1, 2, 3]})
-        store.write("users", data_frame=data, write_option="replace")
+    data = pd.DataFrame({"user_id": [1, 2, 3]})
+    store.write("users", data_frame=data, write_option="replace")
 
-        result = store.read(
-            f"SELECT * FROM {postgres_config.write_schema}.users"
-        )
-        assert result.equals(data)
+    result = store.read(f"SELECT * FROM {schema}.users")
+    assert result.equals(data)
 ```
 
-See `tests/feature_store_test.py` for the full set of usage patterns (indexes,
-upserts, column migration, chunked reads, etc.).
+### Spawn-per-session vs external database
+
+By default the plugin spawns a throwaway `postgres` process for the test
+session. That requires the `postgres` binary on `PATH` — handy for local dev,
+not always available in CI.
+
+If `SFS_POSTGRES_HOST` is set, the plugin skips spawning and connects to the
+provided database instead. Intended for CI jobs that already run a Postgres
+service container.
+
+| Variable | Required in external mode | Default |
+|---|---|---|
+| `SFS_POSTGRES_HOST` | yes (presence toggles the mode) | — |
+| `SFS_POSTGRES_USER` | yes | — |
+| `SFS_POSTGRES_PASSWORD` | yes | — |
+| `SFS_POSTGRES_PORT` | no | `5432` |
+| `SFS_POSTGRES_DB` | no | `postgres` |
+
+The connecting role needs `CREATE` privilege on the database — per-test
+schemas are created by `FeatureStore` on the fly
+(see [Schema creation](#schema-creation)).
+
+### Importing the fixtures explicitly
+
+If you prefer to re-export the fixtures from your own `conftest.py` rather
+than relying on plugin auto-discovery:
+
+```python
+from sql_feature_store.testing import (
+    sql_feature_store_config,
+    sql_feature_store_fixture,
+    sql_feature_store_postgres_proc,
+)
+```
+
+See `tests/integration/` in the source tree for the full set of usage patterns
+(indexes, upserts, column migration, chunked reads, etc.).
