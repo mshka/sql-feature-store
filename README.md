@@ -91,9 +91,11 @@ fixture reference and the external-database env vars.
 
 ## Documentation
 
-Full API usage — chunked reads, write modes, indexes, `ON CONFLICT DO UPDATE`
-upserts, automatic column migration, and pytest fixtures — lives in
-[`docs/usage.md`](docs/usage.md).
+- [`docs/usage.md`](docs/usage.md) — full API reference: chunked reads, write
+  modes, indexes, `ON CONFLICT DO UPDATE` upserts, automatic column migration,
+  and the pytest fixture reference.
+- [`docs/roadmap.md`](docs/roadmap.md) — what's coming next, organised by
+  target version (online feature store → multi-dialect → offline → 1.0).
 
 ## Contributing
 
@@ -108,7 +110,8 @@ sql-feature-store/
 ├── pyproject.toml
 ├── .pre-commit-config.yaml
 ├── docs/
-│   └── usage.md
+│   ├── usage.md
+│   └── roadmap.md
 ├── src/sql_feature_store/
 │   ├── __init__.py
 │   ├── config.py              # PostgresConfig dataclass
