@@ -10,6 +10,11 @@ name: Release
 # Pushing the tag triggers this workflow:
 #
 #   build           -- builds sdist + wheel, asserts tag matches pyproject.
+#   smoke-test      -- installs the built wheel (with the [testing] extra)
+#                      into a clean venv and runs a tiny pytest that uses the
+#                      shipped fixture — proves the `pytest11` entry point
+#                      and the `sql_feature_store.testing` subpackage survive
+#                      packaging before we publish.
 #   publish-pypi    -- publishes to PyPI via Trusted Publishing
 #                      (no API token; OIDC from the `pypi` GitHub environment,
 #                      which can gate on manual approval).
@@ -63,9 +68,75 @@ jobs:
           path: dist/
           if-no-files-found: error
 
+  smoke-test:
+    name: Smoke-test built wheel
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Download dist/
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Ensure postgres binary is on PATH (needed by pytest-postgresql)
+        run: |
+          PG_BIN=$(ls -d /usr/lib/postgresql/*/bin | sort | tail -n1)
+          echo "$PG_BIN" >> "$GITHUB_PATH"
+          "$PG_BIN/postgres" --version
+
+      # Install the *built wheel* (not the source tree) into a throwaway venv,
+      # with the `[testing]` extra. If the wheel is missing the pytest11 entry
+      # point metadata or the `sql_feature_store.testing` subpackage, the
+      # fixtures won't auto-discover and the test below will fail at collection
+      # time — exactly what we want to catch before PyPI upload.
+      - name: Install wheel[testing] into fresh venv
+        run: |
+          python -m venv /tmp/smoke-venv
+          /tmp/smoke-venv/bin/pip install --upgrade pip
+          WHEEL=$(ls dist/*.whl)
+          echo "Installing $WHEEL with [testing] extra"
+          /tmp/smoke-venv/bin/pip install "${WHEEL}[testing]"
+
+      # Deliberately no conftest.py and no --plugins argument — the fixtures
+      # must come from the pytest11 entry point alone. The test does a real
+      # write + read round-trip so pytest-postgresql actually spins up.
+      - name: Run smoke test against installed wheel
+        run: |
+          mkdir -p /tmp/smoke
+          cat > /tmp/smoke/test_smoke.py <<'PY'
+          """Smoke test for the built wheel — must run with no conftest."""
+
+          import pandas as pd
+
+
+          def test_pytest_plugin_round_trip(
+              sql_feature_store_fixture, sql_feature_store_config
+          ):
+              store = sql_feature_store_fixture
+              data = pd.DataFrame(
+                  {"user_id": [1, 2], "username": ["alice", "bob"]}
+              )
+
+              store.write("users", data_frame=data, write_option="replace")
+
+              got = store.read(
+                  f"select * from {sql_feature_store_config.write_schema}.users "
+                  "order by user_id"
+              )
+              assert got.equals(data)
+          PY
+          cd /tmp/smoke
+          /tmp/smoke-venv/bin/pytest -q --no-header --maxfail=1 test_smoke.py
+
   publish-pypi:
     name: Publish to PyPI
-    needs: build
+    needs: [build, smoke-test]
     runs-on: ubuntu-latest
     # Protected GitHub environment holding the Trusted Publishing binding.
     # Configure required reviewers on this environment for a manual approval

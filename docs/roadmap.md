@@ -38,8 +38,10 @@ Goal: get on PyPI so people can `pip install sql-feature-store`.
 
 - [x] Add a release workflow (`.github/workflows/release.yml`): build on
       tag, publish to PyPI via trusted publishing or `PYPI_API_TOKEN`.
-- [ ] Sanity-check the built wheel (see the "smoke test the shipped
-      plugin" proposal — tests the `pytest11` entry point survives packaging).
+- [x] Sanity-check the built wheel: `release.yml` installs the built wheel
+      with the `[testing]` extra into a clean venv and runs a pytest that
+      uses the shipped fixture, proving the `pytest11` entry point survives
+      packaging before PyPI upload.
 - [x] README: install instructions (`pip install sql-feature-store`),
       PyPI + CI + coverage + Python-version badges.
 - [ ] Tag `v0.2.0`, publish, announce.
