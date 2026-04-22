@@ -1,5 +1,6 @@
 # sql-feature-store
 
+[![PyPI](https://img.shields.io/pypi/v/sql-feature-store.svg)](https://pypi.org/project/sql-feature-store/)
 [![CI](https://github.com/mshka/sql-feature-store/actions/workflows/ci.yml/badge.svg)](https://github.com/mshka/sql-feature-store/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/mshka/sql-feature-store/branch/main/graph/badge.svg)](https://codecov.io/gh/mshka/sql-feature-store)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)

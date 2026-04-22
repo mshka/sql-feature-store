@@ -7,8 +7,8 @@ shift, but the guiding principles below are load-bearing and shouldn't.
 
 | Phase | Scope                       | Target version |
 |-------|-----------------------------|----------------|
-| 0     | First public PyPI release   | `0.1.0`        |
-| 1     | Online feature store        | `0.2.x` – `0.8.x` |
+| 0     | First public PyPI release   | `0.2.0`        |
+| 1     | Online feature store        | `0.3.x` – `0.8.x` |
 | 2     | Multi-dialect (MySQL first) | `0.9.x`        |
 | 3     | Offline capabilities        | `1.0.0` →      |
 
@@ -32,24 +32,24 @@ API surface has stabilised.
 
 ## Phase 0 — Public pre-1.0 release
 
-**Target version: `0.1.0`.**
+**Target version: `0.2.0`.**
 
 Goal: get on PyPI so people can `pip install sql-feature-store`.
 
-- [ ] Add a release workflow (`.github/workflows/release.yml`): build on
+- [x] Add a release workflow (`.github/workflows/release.yml`): build on
       tag, publish to PyPI via trusted publishing or `PYPI_API_TOKEN`.
 - [ ] Sanity-check the built wheel (see the "smoke test the shipped
       plugin" proposal — tests the `pytest11` entry point survives packaging).
-- [ ] README: install instructions (`pip install sql-feature-store`),
+- [x] README: install instructions (`pip install sql-feature-store`),
       PyPI + CI + coverage + Python-version badges.
-- [ ] Tag `v0.1.0`, publish, announce.
+- [ ] Tag `v0.2.0`, publish, announce.
 
 Nothing else blocks the first release. If anything below wants to slip in
-before 0.1.0, it needs a real reason; default is "ship now, iterate".
+before 0.2.0, it needs a real reason; default is "ship now, iterate".
 
 ## Phase 1 — Online feature store
 
-**Target versions: `0.2.x` through `0.8.x`. Still pre-1.0.**
+**Target versions: `0.3.x` through `0.8.x`. Still pre-1.0.**
 
 Goal: turn the library from "a pandas-friendly Postgres upserter" into a
 credible online feature store. Each sub-section is an independently

@@ -7,57 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+## [0.2.0] - 2026-04-22
 
-- `PostgresConfig.create_schema_if_missing` (default `True`) — `FeatureStore`
-  now runs `CREATE SCHEMA IF NOT EXISTS` on its first `write()` call and
-  memoises the check for the lifetime of the instance. Set to `False` to
-  require that the schema exists up front (raises
-  `sqlalchemy.exc.ProgrammingError` otherwise).
-- Pytest plugin shipped as part of the package (registered via the
-  `pytest11` entry point). Install with `pip install sql-feature-store[testing]`
-  to get three auto-discovered fixtures:
-  - `sql_feature_store_postgres_proc` — session-scoped Postgres process
-    (spawned locally, or connected to an external server when
-    `SFS_POSTGRES_HOST` is set).
-  - `sql_feature_store_config` — `PostgresConfig` with a fresh random
-    `write_schema` per test (dropped `CASCADE` on teardown).
-  - `sql_feature_store_fixture` — a ready `FeatureStore` for the per-test
-    schema.
-- New `sql_feature_store.testing` subpackage re-exporting the fixtures for
-  explicit import from a consumer's `conftest.py`.
-
-### Changed
-
-- Integration tests moved under `tests/integration/` and split across per-
-  feature files (`read_test.py`, `write_modes_test.py`, `indices_test.py`,
-  `upsert_test.py`, `column_migration_test.py`,
-  `table_name_validation_test.py`, `engine_pool_test.py`,
-  `auto_create_schema_test.py`). No test behaviour changes.
-- Coverage runs now use `coverage run -m pytest` (instead of
-  `pytest --cov=...`) in both `tox` and CI, so coverage starts before
-  pytest loads its entry-point plugins — the shipped pytest11 plugin's
-  own package (`__init__.py`, `config.py`) is now correctly attributed.
-  Coverage config (`source`, `show_missing`, `fail_under = 90`) lives
-  in `tox.ini` and is read by both runners.
-
-### Removed
-
-- Private test helpers `tests/postgres_db_utils.py`
-  (`FakePostgresConnection`, `PostgresDbSession`) and the ad-hoc
-  `patched_store` fixture — superseded by the shipped plugin, per-test
-  random schemas, and auto-created `write_schema`.
-- Redundant `test_writing_to_db` test that exercised only the now-deleted
-  `FakePostgresConnection.write_pandas_to_db` helper; the same
-  write-then-read round trip is covered by `TestWriteModes.
-  test_write_then_read_roundtrip`.
-- `pytest-cov` dev dependency. Nothing invokes the `--cov` pytest flag
-  anymore; `coverage` (which was already pulled in transitively) is now
-  declared directly in the dev group.
-
-## [0.1.0] - TBD
-
-Initial public release.
+Initial public release on PyPI.
 
 ### Added
 
@@ -73,13 +25,32 @@ Initial public release.
   - `ON CONFLICT DO UPDATE` upserts via `on_conflict_do_update`.
   - Connection pooling with `pool_pre_ping` and configurable
     `pool_size` / `max_overflow` / `pool_recycle`.
-- `PostgresConfig` dataclass for connection parameters (including
-  `write_schema`, default `"predictions"`).
+- `PostgresConfig` dataclass for connection parameters. Fields include
+  `write_schema` (default `"predictions"`) and `create_schema_if_missing`
+  (default `True`) — `FeatureStore` runs `CREATE SCHEMA IF NOT EXISTS` on
+  its first `write()` call and memoises the check for the lifetime of the
+  instance. Set to `False` to require that the schema exists up front
+  (raises `sqlalchemy.exc.ProgrammingError` otherwise).
 - Table-name validation against `^[a-z0-9_]+$`.
-- Documentation in [`docs/usage.md`](docs/usage.md).
+- Pytest plugin shipped with the package via the `pytest11` entry point.
+  Install with `pip install sql-feature-store[testing]` to get three
+  auto-discovered fixtures:
+  - `sql_feature_store_postgres_proc` — session-scoped Postgres process
+    (spawned locally, or connected to an external server when
+    `SFS_POSTGRES_HOST` is set).
+  - `sql_feature_store_config` — `PostgresConfig` with a fresh random
+    `write_schema` per test (dropped `CASCADE` on teardown).
+  - `sql_feature_store_fixture` — a ready `FeatureStore` for the per-test
+    schema.
+- `sql_feature_store.testing` subpackage re-exporting the fixtures for
+  explicit import from a consumer's `conftest.py`.
+- Documentation: [`docs/usage.md`](docs/usage.md) API reference and
+  [`docs/roadmap.md`](docs/roadmap.md) forward plan.
 - Development tooling: `pre-commit` (black, flake8, isort, pygrep-hooks),
-  `pytest` + `pytest-postgresql` + `pytest-cov`, GitHub Actions CI with
-  Codecov coverage reporting.
+  `pytest` + `pytest-postgresql`, `tox` for one-command local verification,
+  GitHub Actions CI with Codecov coverage reporting, and a tag-driven
+  release workflow (`.github/workflows/release.yml`) publishing to PyPI
+  via Trusted Publishing.
 
-[Unreleased]: https://github.com/mshka/sql-feature-store/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/mshka/sql-feature-store/releases/tag/v0.1.0
+[Unreleased]: https://github.com/mshka/sql-feature-store/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/mshka/sql-feature-store/releases/tag/v0.2.0
