@@ -34,46 +34,49 @@ On Fedora / RHEL, substitute `apt` with `dnf` and the package names accordingly
 ```bash
 git clone git@github.com:mshka/sql-feature-store.git
 cd sql-feature-store
-poetry install            # runtime + dev deps
-pre-commit install        # set up the git hook (run once per clone)
+poetry install --all-extras   # runtime + dev deps + [testing] extra
+pre-commit install            # set up the git hook (run once per clone)
 ```
 
 Python-level dependencies are declared in `pyproject.toml` and locked in
 `poetry.lock`.
 
-## Running tests
+## Running the full local gate
+
+`tox` wires up the whole CI-equivalent pipeline (tests + coverage + lint +
+mypy) in one command:
 
 ```bash
-poetry run pytest
+poetry run tox
 ```
 
-With coverage (matches CI):
+This runs `coverage run -m pytest`, `coverage report` (fails under 90%),
+`pre-commit run --all-files`, and `mypy src`.
+
+### Running steps individually
 
 ```bash
-poetry run pytest \
-  --cov=sql_feature_store \
-  --cov-report=term-missing \
-  --cov-fail-under=90
+poetry run pytest                              # tests only, no coverage
+poetry run coverage run -m pytest              # tests with coverage
+poetry run coverage report                     # 90% floor, matches CI
+poetry run pre-commit run --all-files          # lint
+poetry run mypy src                            # type check
 ```
 
-`pytest-postgresql` spawns a real `postgres` process for the test session, so
-the `postgres` binary must be on your `PATH`.
+`coverage run -m pytest` (rather than `pytest --cov=...`) is used so
+coverage starts before pytest loads its entry-point plugins — we ship our
+own `pytest11` plugin in `sql_feature_store.testing.plugin`, and
+pytest-cov would undercount its package's import-time lines.
 
-## Linting and formatting
-
-Pre-commit runs `black`, `flake8`, `isort`, and a few `pygrep-hooks` on commit.
-You can run the full suite manually:
-
-```bash
-poetry run pre-commit run --all-files
-```
+`pytest-postgresql` spawns a real `postgres` process for the test session,
+so the `postgres` binary must be on your `PATH`.
 
 ## Opening a pull request
 
 1. Fork and branch off `main` (e.g. `fix/something`, `docs/something`).
 2. Keep commits focused — one concern per commit, capitalized imperative
    subject (e.g. "Add CONTRIBUTING guide", "Fix typo in write()").
-3. Make sure `pytest` and `pre-commit run --all-files` pass locally.
+3. Make sure `poetry run tox` passes locally.
 4. Open a PR against `main`. CI must be green before merge.
 
 Breaking changes are fine pre-`0.1.0`; call them out clearly in the PR

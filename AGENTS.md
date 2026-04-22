@@ -14,12 +14,23 @@ Assume Poetry 2.x and a Python in range `>=3.10,<3.14` are installed. The
 spawns a real server).
 
 ```bash
-poetry install                       # runtime + dev deps
-poetry run pytest                    # full test suite
-poetry run pytest --cov=sql_feature_store --cov-fail-under=90
-poetry run pre-commit run --all-files   # black, flake8, isort, pygrep-hooks
-poetry run mypy src                  # type check (config in tox.ini)
+poetry install --all-extras          # runtime + dev deps + [testing] extra
+poetry run tox                       # full local gate: tests + coverage + lint + mypy
+
+# Or run the individual steps:
+poetry run pytest                                # full test suite, no coverage
+poetry run coverage run -m pytest                # tests with coverage (needed
+poetry run coverage report                       #   for correct attribution of
+                                                 #   our own pytest11 plugin)
+poetry run pre-commit run --all-files            # black, flake8, isort, pygrep-hooks
+poetry run mypy src                              # type check (config in tox.ini)
 ```
+
+The test suite lives under `tests/integration/` — every test currently hits a
+real PostgreSQL database via the project's own pytest plugin
+(`src/sql_feature_store/testing/plugin.py`, registered in `pyproject.toml`
+under `[project.entry-points.pytest11]`). Any future unit tests go under a
+sibling `tests/unit/`.
 
 All of the above must pass before a change is considered done. CI runs the
 same checks on Python 3.10 / 3.11 / 3.12 / 3.13.

@@ -112,17 +112,23 @@ jobs:
         run: poetry install --no-interaction
 
       - name: Run tests with coverage
+        # Use `coverage run -m pytest` (not `pytest --cov=...`) so coverage
+        # starts before pytest loads its entry-point plugins. We ship our
+        # own pytest11 plugin in `sql_feature_store.testing.plugin`; with
+        # pytest-cov, the package is already imported by the time coverage
+        # activates, so `__init__.py` and `config.py` are undercounted.
+        # All coverage options (source, show_missing, fail_under=90) are
+        # read from the [coverage:*] sections in tox.ini.
         run: |
-          poetry run pytest tests/ \
-            --cov=sql_feature_store \
-            --cov-report=term-missing \
-            --cov-report=xml \
-            --cov-report=html \
-            --cov-fail-under=90
+          poetry run coverage run -m pytest tests/
+          poetry run coverage report
+          poetry run coverage xml
+          poetry run coverage html
 
       # Coverage is uploaded once, from the primary Python version, to keep
       # Codecov reports and artifact names unambiguous. The other matrix
-      # entries still enforce --cov-fail-under locally above.
+      # entries still enforce `fail_under = 90` via `coverage report` above
+      # (config lives in tox.ini).
       - name: Upload coverage to Codecov
         if: always() && matrix.python-version == '3.12'
         uses: codecov/codecov-action@v4

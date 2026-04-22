@@ -55,6 +55,40 @@ result = store.read("select * from predictions.users")
 Credentials are passed in directly — sourcing them (env vars, AWS Secrets
 Manager, Vault, etc.) is the caller's responsibility.
 
+## Testing your own code
+
+`sql-feature-store` ships a pytest plugin so your tests can hit a real
+PostgreSQL without wiring up fixtures from scratch. Install the `testing`
+extra:
+
+```bash
+pip install sql-feature-store[testing]
+```
+
+Three fixtures are auto-discovered:
+
+- `sql_feature_store_postgres_proc` — a Postgres process (spawned via
+  `pytest-postgresql`, or an external DB when `SFS_POSTGRES_HOST` is set).
+- `sql_feature_store_config` — a `PostgresConfig` with a fresh random
+  `write_schema` per test, dropped on teardown.
+- `sql_feature_store_fixture` — a ready `FeatureStore` pointed at that
+  schema.
+
+```python
+import pandas as pd
+
+def test_round_trip(sql_feature_store_fixture, sql_feature_store_config):
+    store = sql_feature_store_fixture
+    schema = sql_feature_store_config.write_schema
+
+    store.write("users", data_frame=pd.DataFrame({"user_id": [1, 2, 3]}))
+    result = store.read(f"select * from {schema}.users")
+    assert len(result) == 3
+```
+
+See [`docs/usage.md`](docs/usage.md#testing-with-pytest) for the full
+fixture reference and the external-database env vars.
+
 ## Documentation
 
 Full API usage — chunked reads, write modes, indexes, `ON CONFLICT DO UPDATE`
@@ -78,11 +112,11 @@ sql-feature-store/
 ├── src/sql_feature_store/
 │   ├── __init__.py
 │   ├── config.py              # PostgresConfig dataclass
-│   └── store.py               # FeatureStore
+│   ├── store.py               # FeatureStore
+│   └── testing/               # pytest plugin shipped as [testing] extra
+│       └── plugin.py          # fixtures: _postgres_proc, _config, _fixture
 └── tests/
-    ├── conftest.py
-    ├── postgres_db_utils.py
-    └── feature_store_test.py
+    └── integration/           # one test file per feature area
 ```
 
 ## License
