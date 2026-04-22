@@ -25,9 +25,7 @@ class TestTableNameValidation:
         data = pd.DataFrame({"user_id": [1, 2, 3]})
 
         if expected_to_raise:
-            with pytest.raises(
-                ValueError, match=TestTableNameValidation._MSG
-            ):
+            with pytest.raises(ValueError, match=TestTableNameValidation._MSG):
                 store.write(table_name, data_frame=data)
         else:
             store.write(table_name, data_frame=data)

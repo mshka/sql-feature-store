@@ -5,9 +5,7 @@ import pandas as pd
 
 class TestRead:
     @staticmethod
-    def test_read_returns_all_rows(
-        sql_feature_store_fixture, sql_feature_store_config
-    ):
+    def test_read_returns_all_rows(sql_feature_store_fixture, sql_feature_store_config):
         store = sql_feature_store_fixture
         data = pd.DataFrame(
             {
@@ -24,9 +22,7 @@ class TestRead:
         assert len(result) == 10_001
 
     @staticmethod
-    def test_read_streams_chunks(
-        sql_feature_store_fixture, sql_feature_store_config
-    ):
+    def test_read_streams_chunks(sql_feature_store_fixture, sql_feature_store_config):
         store = sql_feature_store_fixture
         data = pd.DataFrame(
             {
