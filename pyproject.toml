@@ -1,6 +1,6 @@
 [project]
 name = "sql-feature-store"
-version = "0.1.0"
+version = "0.2.0"
 description = "Lightweight online feature store backed by a SQL database (currently PostgreSQL) with a pandas API: automatic table creation, column migration, upserts, and chunked reads."
 authors = [
     {name = "Mark Jad", email = "mark.jad@live.com"}
