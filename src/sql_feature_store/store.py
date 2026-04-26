@@ -261,6 +261,69 @@ class FeatureStore:
             _table.c[view.entity].in_(list(entity_ids))
         )
 
+    def get_online_features(
+        self,
+        entity_ids: Sequence[Any],
+        view: FeatureView,
+        read_schema: Optional[str] = None,
+        on_missing: Literal["null", "raise"] = "null",
+    ) -> pd.DataFrame:
+        """
+        Look up rows in ``view.table`` keyed by ``entity_ids``.
+
+        Returns a DataFrame with one row per entry in ``entity_ids``,
+        preserving the requested order. The DataFrame is indexed by
+        ``view.entity`` and feature columns are renamed to
+        ``f"{view.table}.{feature}"`` so multi-view merges (Phase 1.3) won't
+        collide.
+
+        Parameters:
+        entity_ids (Sequence):
+            Entity-key values to look up.
+        view (FeatureView):
+            The view to read from.
+        read_schema (str, optional):
+            Schema containing ``view.table``. Defaults to
+            ``config.write_schema``.
+        on_missing (Literal["null", "raise"]):
+            Behaviour when an entity has no row in the table.
+                - "null" (default): the entity gets a row of NaN values.
+                - "raise": raises ``KeyError`` listing the missing entity_ids.
+
+        Returns:
+        DataFrame: indexed by ``view.entity``, columns named
+        ``f"{view.table}.{feature}"`` for each feature in ``view.features``.
+
+        Assumes ``view.table`` has at most one row per entity. Use
+        ``ensure_entity_index`` to enforce that at the schema level.
+        """
+        _columns_with_table_ref = {
+            _feat: f"{view.table}.{_feat}" for _feat in view.features
+        }
+
+        # Empty entity_ids: skip SQL entirely (SQLAlchemy emits a warning on
+        # empty IN clauses anyway) and return an empty DataFrame with the
+        # right shape so callers can still trust the columns and index name.
+        if len(entity_ids) == 0:
+            _empty = pd.DataFrame(columns=list(_columns_with_table_ref.values()))
+            _empty.index.name = view.entity
+            return _empty
+
+        _df = self._read(
+            self.get_online_features_sql(
+                entity_ids=entity_ids, view=view, read_schema=read_schema
+            )
+        )
+
+        _df = _df.rename(columns=_columns_with_table_ref).set_index(view.entity)
+
+        if on_missing == "raise":
+            _missing = [_e for _e in entity_ids if _e not in _df.index]
+            if _missing:
+                raise KeyError(f"Entities not found in {view.table}: {_missing}")
+
+        return _df.reindex(list(entity_ids))
+
     def get_online_features_sql(
         self,
         entity_ids: Sequence[Any],
