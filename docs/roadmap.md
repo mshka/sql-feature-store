@@ -70,18 +70,18 @@ SQL-first and view-unaware.
 
 ### 1.1 — Feature views
 
-- [ ] `FeatureView` dataclass in `src/sql_feature_store/views.py`. Frozen,
+- [x] `FeatureView` dataclass in `src/sql_feature_store/views.py`. Frozen,
       four fields:
   - `table: str` — source table name.
   - `entity: str` — entity-key column (what the online read looks up by).
   - `features: list[str]` — column names to expose.
   - `last_updated: str | None` — optional freshness column (default
     `None`).
-- [ ] No `Feature` dataclass. Per-feature metadata (dtype, nullable,
+- [x] No `Feature` dataclass. Per-feature metadata (dtype, nullable,
       description) lives in the SQL schema; callers who want typed
       returns pass a `dtype=` kwarg to `get_online_features`, same shape
       as `pd.read_sql`'s `dtype` argument.
-- [ ] Declarative only — no engine, no SQL, no registry. Users construct
+- [x] Declarative only — no engine, no SQL, no registry. Users construct
       `FeatureView` instances in their own code and pass them to the
       store.
 
