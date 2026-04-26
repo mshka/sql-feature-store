@@ -44,7 +44,6 @@ Goal: get on PyPI so people can `pip install sql-feature-store`.
       packaging before PyPI upload.
 - [x] README: install instructions (`pip install sql-feature-store`),
       PyPI + CI + coverage + Python-version badges.
-- [ ] Tag `v0.2.0`, publish, announce.
 
 Nothing else blocks the first release. If anything below wants to slip in
 before 0.2.0, it needs a real reason; default is "ship now, iterate".
@@ -58,23 +57,44 @@ credible online feature store. Each sub-section is an independently
 shippable 0.x release; the exact version bump per sub-section is decided
 at release time.
 
+Two read paths coexist and stay explicit — neither wraps the other:
+
+- `FeatureStore.read(sql_query, chunksize=None)` — the existing escape
+  hatch for ad-hoc SQL. Returns a DataFrame. Unchanged by Phase 1.
+- `FeatureStore.get_online_features(entity_ids, views, ...)` — typed,
+  entity-keyed, view-driven. Added in this phase.
+
+Callers pick per use-case; neither is deprecated. The point of
+`FeatureView` is to make the *second* path work; the first path stays
+SQL-first and view-unaware.
+
 ### 1.1 — Feature views
 
-- [ ] `Feature` dataclass (name, dtype, nullable, description).
-- [ ] `FeatureView` dataclass (name, entity, features, source_table,
-      source_schema).
-- [ ] Live in a new module `src/sql_feature_store/views.py`. Declarative
-      only — no engine, no SQL.
+- [ ] `FeatureView` dataclass in `src/sql_feature_store/views.py`. Frozen,
+      four fields:
+  - `table: str` — source table name.
+  - `entity: str` — entity-key column (what the online read looks up by).
+  - `features: list[str]` — column names to expose.
+  - `last_updated: str | None` — optional freshness column (default
+    `None`).
+- [ ] No `Feature` dataclass. Per-feature metadata (dtype, nullable,
+      description) lives in the SQL schema; callers who want typed
+      returns pass a `dtype=` kwarg to `get_online_features`, same shape
+      as `pd.read_sql`'s `dtype` argument.
+- [ ] Declarative only — no engine, no SQL, no registry. Users construct
+      `FeatureView` instances in their own code and pass them to the
+      store.
 
 ### 1.2 — Entity-keyed reads (single view)
 
-- [ ] `FeatureStore.get_online_features(entity_ids, views)` supporting one
-      view per call.
+- [ ] `FeatureStore.get_online_features(entity_ids, views, dtype=None,
+      on_missing="null")` supporting one view per call.
 - [ ] Deterministic return shape: one row per requested entity id,
       DataFrame indexed by the entity column, columns named
-      `{view.name}.{feature.name}`.
+      `{view.table}.{feature}`.
 - [ ] `on_missing="null" | "raise"`, default `"null"`.
-- [ ] dtype contract enforcement on the returned DataFrame.
+- [ ] Optional `dtype` kwarg (same shape as `pd.read_sql`'s `dtype`) — if
+      supplied, enforced on the returned DataFrame. No implicit typing.
 - [ ] `FeatureStore.ensure_entity_index(view)` — one-line helper to add a
       unique index on the view's entity column if missing.
 
@@ -86,9 +106,9 @@ at release time.
 
 ### 1.4 — Freshness
 
-- [ ] `last_updated_column` convention on `FeatureView` (nullable, default
-      `"last_updated"`).
-- [ ] `FeatureStore.last_updated(view) -> datetime | None`.
+- [ ] `FeatureStore.last_updated(view) -> datetime | None` — returns
+      `SELECT MAX(view.last_updated) FROM view.table`. `None` when the
+      view didn't declare a `last_updated` column.
 - [ ] Document the `last_updated` write-side convention; do **not** start
       auto-writing it — keep producers in control.
 
@@ -149,8 +169,8 @@ Scope stays small — no backfill orchestration, no transformation DSL.
 Offline work starts at 1.0.0; once an offline API exists, anything that
 changes it post-1.0 follows semver properly (breaking change → 2.0).
 
-- [ ] `event_timestamp` + `created_at` columns as first-class conventions
-      on `FeatureView`.
+- [ ] Grow `FeatureView` with optional `event_timestamp` and `created_at`
+      column-name fields (4 → 6 fields, online path ignores them).
 - [ ] `FeatureStore.get_historical_features(entity_df, views)` — point-in-time
       join over a DataFrame of `(entity_id, label_timestamp, ...)` rows.
 - [ ] Document the "train on offline, serve on online" workflow.
