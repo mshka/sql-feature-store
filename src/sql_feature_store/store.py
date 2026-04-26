@@ -1,5 +1,16 @@
 import re
-from typing import Any, Dict, Iterator, List, Literal, Optional, Set, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Set,
+    Union,
+    cast,
+)
 
 import numpy as np
 import pandas as pd
@@ -11,17 +22,21 @@ from sqlalchemy import (
     Engine,
     Index,
     MetaData,
+    Select,
     Table,
     TableClause,
     column,
     create_engine,
+    select,
     table,
     text,
 )
+from sqlalchemy.dialects.postgresql import dialect as postgres_dialect
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.schema import CreateSchema
 
 from sql_feature_store.config import PostgresConfig
+from sql_feature_store.views import FeatureView
 
 DEFAULT_POOL_SIZE = 20
 DEFAULT_MAX_OVERFLOW = 10
@@ -218,6 +233,70 @@ class FeatureStore:
             _output = pd.read_sql(text(sql_query), con=conn)
             conn.close()
             return _output
+
+    def _build_online_features_query(
+        self,
+        entity_ids: Sequence[Any],
+        view: FeatureView,
+        read_schema: Optional[str] = None,
+    ) -> Select:
+        """Build the SELECT for ``get_online_features`` without executing it.
+
+        Uses a static SQLAlchemy ``table(...)`` reference (no DB reflection),
+        so this method opens no connection. Callers are
+        ``get_online_features`` (executes the result) and
+        ``get_online_features_sql`` (renders it to a string for inspection /
+        EXPLAIN).
+        """
+        _schema = read_schema if read_schema is not None else self._config.write_schema
+
+        _table = table(
+            view.table,
+            column(view.entity),
+            *[column(_feat) for _feat in view.features],
+            schema=_schema,
+        )
+
+        return select(*_table.columns).where(
+            _table.c[view.entity].in_(list(entity_ids))
+        )
+
+    def get_online_features_sql(
+        self,
+        entity_ids: Sequence[Any],
+        view: FeatureView,
+        read_schema: Optional[str] = None,
+    ) -> str:
+        """
+        Return the SQL ``get_online_features(...)`` would execute.
+
+        Pure rendering — opens no database connection. Bind values are inlined
+        (``literal_binds=True``) so the result is paste-able into ``psql`` for
+        ``EXPLAIN`` or debugging. Don't ``cursor.execute()`` the returned
+        string against an untrusted database; re-bind via SQLAlchemy or
+        psycopg if you need that.
+
+        Parameters:
+        entity_ids (Sequence):
+            Entity-key values to look up.
+        view (FeatureView):
+            The view to read from.
+        read_schema (str, optional):
+            Schema containing ``view.table``. Defaults to
+            ``config.write_schema``.
+
+        Returns:
+        str: The compiled PostgreSQL SELECT statement.
+        """
+        _stmt = self._build_online_features_query(
+            entity_ids=entity_ids, view=view, read_schema=read_schema
+        )
+        return str(
+            _stmt.compile(
+                dialect=postgres_dialect(),
+                compile_kwargs={"literal_binds": True},
+            )
+        )
 
     def read(
         self, sql_query: str, chunksize: Optional[int] = None
