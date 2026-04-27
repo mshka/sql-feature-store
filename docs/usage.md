@@ -10,6 +10,7 @@ For installation, see the [README](../README.md).
 - [Schema creation](#schema-creation)
 - [Connection pool](#connection-pool)
 - [Reading](#reading)
+- [Feature views and entity-keyed reads](#feature-views-and-entity-keyed-reads)
 - [Writing](#writing)
 - [Indexes](#indexes)
 - [Upserts (`ON CONFLICT DO UPDATE`)](#upserts-on-conflict-do-update)
@@ -102,6 +103,96 @@ for chunk in store.read("SELECT * FROM predictions.users", chunksize=1000):
 
 Under the hood this uses a server-side cursor (`stream_results=True`), so rows
 aren't all loaded into memory at once.
+
+## Feature views and entity-keyed reads
+
+Feature views give you a small declarative wrapper over a table so callers can
+look up rows by entity ID without writing SQL. The view itself is a 4-field
+dataclass; the store does the query.
+
+```python
+from sql_feature_store import FeatureView
+
+users_view = FeatureView(
+    table="users",
+    entity="user_id",
+    features=["country", "age"],
+    last_updated=None,  # optional freshness column; see Phase 1.4 in roadmap
+)
+```
+
+`FeatureView` is frozen and has no engine, no SQL, and no registry — just a
+declaration. The `read()` path is still available for everything that doesn't
+fit this shape.
+
+### `get_online_features`
+
+Look up features for a list of entity IDs, in caller-supplied order:
+
+```python
+result = store.get_online_features(
+    entity_ids=[1, 2, 3],
+    view=users_view,
+)
+#         users.country  users.age
+# user_id
+# 1                  US         21
+# 2                  US         34
+# 3                  FR         47
+```
+
+Contract:
+
+- One row per requested entity (modulo `on_missing`, below).
+- Indexed by `view.entity`.
+- Feature columns are renamed `{view.table}.{feature}` so multi-view merges
+  (Phase 1.3) won't collide.
+- Caller order is preserved.
+
+### `on_missing`
+
+Controls behaviour when a requested entity has no row in the table:
+
+| Value | Behaviour |
+|---|---|
+| `"null"` *(default)* | Missing entities get a row of NaN values. |
+| `"raise"` | Raises `KeyError` listing the missing entity IDs. |
+| `"skip"` | Missing entities are dropped from the result. |
+
+```python
+store.get_online_features(entity_ids=[1, 999], view=users_view, on_missing="skip")
+# returns just the row for user 1; 999 is dropped silently
+```
+
+### Inspecting the SQL
+
+`get_online_features_sql` returns the exact SQL that `get_online_features`
+would execute, with bind values inlined. No DB connection is opened — useful
+for debugging, planning, or piping into `EXPLAIN`:
+
+```python
+print(store.get_online_features_sql(entity_ids=[1, 2], view=users_view))
+# SELECT users.user_id, users.country, users.age
+# FROM predictions.users
+# WHERE users.user_id IN (1, 2)
+```
+
+### Read schema
+
+By default reads target `config.write_schema`. Override per-call with
+`read_schema=`:
+
+```python
+store.get_online_features(entity_ids=[1], view=users_view, read_schema="analytics")
+```
+
+### Caveats
+
+- The view is assumed to have **at most one row per entity**. If the table can
+  have duplicates, the result is undefined — enforce uniqueness at the schema
+  level (a unique index helper is on the roadmap).
+- For large `entity_ids` lists, the generated `IN (...)` clause grows linearly.
+  This is intentional for now; revisit only if profiling shows it matters.
 
 ## Writing
 

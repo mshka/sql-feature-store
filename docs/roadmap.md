@@ -87,12 +87,14 @@ SQL-first and view-unaware.
 
 ### 1.2 — Entity-keyed reads (single view)
 
-- [ ] `FeatureStore.get_online_features(entity_ids, views, dtype=None,
-      on_missing="null")` supporting one view per call.
-- [ ] Deterministic return shape: one row per requested entity id,
-      DataFrame indexed by the entity column, columns named
-      `{view.table}.{feature}`.
-- [ ] `on_missing="null" | "raise"`, default `"null"`.
+- [x] `FeatureStore.get_online_features(entity_ids, view, dtype=None,
+      on_missing="null")` supporting one view per call. Inspectable SQL
+      via `FeatureStore.get_online_features_sql(...)`.
+- [x] Deterministic return shape: one row per requested entity id (when
+      not skipped), DataFrame indexed by the entity column, columns
+      named `{view.table}.{feature}`.
+- [x] `on_missing="null" | "raise" | "skip"`, default `"null"`. `"skip"`
+      drops unknown entities entirely (added beyond the original spec).
 - [ ] Optional `dtype` kwarg (same shape as `pd.read_sql`'s `dtype`) — if
       supplied, enforced on the returned DataFrame. No implicit typing.
 - [ ] `FeatureStore.ensure_entity_index(view)` — one-line helper to add a
