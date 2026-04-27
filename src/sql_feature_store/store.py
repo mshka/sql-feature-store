@@ -266,16 +266,15 @@ class FeatureStore:
         entity_ids: Sequence[Any],
         view: FeatureView,
         read_schema: Optional[str] = None,
-        on_missing: Literal["null", "raise"] = "null",
+        on_missing: Literal["null", "raise", "skip"] = "null",
     ) -> pd.DataFrame:
         """
         Look up rows in ``view.table`` keyed by ``entity_ids``.
 
-        Returns a DataFrame with one row per entry in ``entity_ids``,
-        preserving the requested order. The DataFrame is indexed by
-        ``view.entity`` and feature columns are renamed to
-        ``f"{view.table}.{feature}"`` so multi-view merges (Phase 1.3) won't
-        collide.
+        Returns a DataFrame indexed by ``view.entity`` and with feature columns
+        renamed to ``f"{view.table}.{feature}"`` so multi-view merges
+        (Phase 1.3) won't collide. Caller order is preserved for whichever
+        entities end up in the result.
 
         Parameters:
         entity_ids (Sequence):
@@ -285,10 +284,11 @@ class FeatureStore:
         read_schema (str, optional):
             Schema containing ``view.table``. Defaults to
             ``config.write_schema``.
-        on_missing (Literal["null", "raise"]):
+        on_missing (Literal["null", "raise", "skip"]):
             Behaviour when an entity has no row in the table.
                 - "null" (default): the entity gets a row of NaN values.
                 - "raise": raises ``KeyError`` listing the missing entity_ids.
+                - "skip": the entity is omitted from the result.
 
         Returns:
         DataFrame: indexed by ``view.entity``, columns named
@@ -321,6 +321,8 @@ class FeatureStore:
             _missing = [_e for _e in entity_ids if _e not in _df.index]
             if _missing:
                 raise KeyError(f"Entities not found in {view.table}: {_missing}")
+        elif on_missing == "skip":
+            return _df.loc[[_e for _e in entity_ids if _e in _df.index]]
 
         return _df.reindex(list(entity_ids))
 

@@ -102,6 +102,24 @@ class TestGetOnlineFeatures:
         pd.testing.assert_frame_equal(result, expected)
 
     @staticmethod
+    def test_on_missing_skip_drops_unknown_entities_and_preserves_order(
+        sql_feature_store_fixture,
+    ):
+        store = sql_feature_store_fixture
+        _seed_users(store)
+        view = FeatureView(table="users", entity="user_id", features=["country", "age"])
+
+        result = store.get_online_features(
+            entity_ids=[2, 999, 3], view=view, on_missing="skip"
+        )
+
+        expected = pd.DataFrame(
+            {"users.country": ["US", "FR"], "users.age": [34, 47]},
+            index=pd.Index([2, 3], name="user_id"),
+        )
+        pd.testing.assert_frame_equal(result, expected)
+
+    @staticmethod
     def test_on_missing_raise_returns_normally_when_all_entities_exist(
         sql_feature_store_fixture,
     ):
